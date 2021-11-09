@@ -1,0 +1,13 @@
+# for python
+__pycache__
+*.pyc
+.ipynb_checkpoints
+venv
+
+# readme
+readme.html
+
+# image
+data_*/*
+!/data_hand/*.npy
+!/data_face/hand
