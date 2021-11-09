@@ -19,6 +19,8 @@ def main():
             game.addBall()
         if k == ord("s"):
             game.skipToGame()
+        if k == ord("g"):
+            game.toggleDebugMode()
     game.dispose()
     cv2.destroyAllWindows()
 

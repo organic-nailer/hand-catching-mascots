@@ -8,12 +8,19 @@ from player import Player
 from util import calc_distance
 from detect_hand import detect_hand
 
-WINDOW_WIDTH = 1280
+WINDOW_WIDTH = 960
 WINDOW_HEIGHT = 720
 GAME_NAME = "Hand Catching Mascots"
 
-menuBackground = np.full((WINDOW_HEIGHT, WINDOW_WIDTH, 3), [230,150,220], dtype=np.uint8)
-finishedBackground = np.full((WINDOW_HEIGHT, WINDOW_WIDTH, 3), [120,130,200], dtype=np.uint8)
+startBackground = cv2.resize(cv2.imread("image_data/title.png"), (WINDOW_WIDTH, WINDOW_HEIGHT))
+finishedBackground = np.full((WINDOW_HEIGHT, WINDOW_WIDTH, 3), [255, 250, 251], dtype=np.uint8)
+cv2.rectangle(finishedBackground, (0, int(WINDOW_HEIGHT * 0.2)), (int(WINDOW_WIDTH * 0.6), int(WINDOW_HEIGHT * 0.8)), (255, 153, 135)[::-1], -1)
+cv2.circle(finishedBackground,(int(WINDOW_WIDTH * 0.6),WINDOW_HEIGHT // 2), int(WINDOW_HEIGHT * 0.3), (255, 153, 135)[::-1], -1)
+
+COLOR_SAITAMA = (230, 54, 10)[::-1]
+COLOR_KOUCHI = (122, 23, 28)[::-1]
+COLOR_TEXT_ORANGE = (136, 45, 63)[::-1]
+COLOR_YELLOW = (254, 226, 191)[::-1]
 
 class Game:
     cap = cv2.VideoCapture(0)
@@ -23,8 +30,8 @@ class Game:
         # ゲームの現在の状態
         # ["beforeStart","detection","pendingStart","inGame","finished"]
         self.state = "beforeStart"
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, WINDOW_WIDTH)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, WINDOW_HEIGHT)
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
         self.countDown = "?"
         self.balls = []
         self.frameHeight = -1
@@ -38,6 +45,8 @@ class Game:
         self.faceDetector = FaceDetector()
         self.detectionFlag = False
         self.gameTick = 0
+        self.debug = False
+        self.finishedFrame = finishedBackground
 
     # ゲームを消すときに安全のため呼び出す
     def dispose(self):
@@ -47,17 +56,17 @@ class Game:
     # フレームの計算、画面の更新を行う
     def update(self):
         ret, frame = self.cap.read()
+        frame = cv2.resize(frame, (WINDOW_WIDTH, WINDOW_HEIGHT))
         frame = cv2.flip(frame,1)
         self.frameHeight = frame.shape[0]
         self.frameWidth = frame.shape[1]
         ############## この間に画面を更新処理を書く start ###################
-        if self.state == "beforeStart":
-            frame = menuBackground
-            self.drawText(frame, 400, 500, "press Z to start")
-            self.drawText(frame, 400, 300, GAME_NAME)
-        elif self.state == "detection":
+        if self.state == "beforeStart": # スタート画面
+            frame = startBackground
+        elif self.state == "detection": # 顔登録画面
             skin_mask = ip.get_skin_mask(frame)
-            cv2.imshow("skin", skin_mask)
+            if self.debug:
+                cv2.imshow("skin", skin_mask)
             skin_areas = ip.get_skin_areas(frame)
             l_center_x = self.frameWidth // 4
             r_center_x = self.frameWidth * 3 // 4
@@ -84,15 +93,15 @@ class Game:
             y0 = self.frameHeight // 6
             y1 = self.frameHeight * 5 // 8
             darked[y0:y1,x0:x1] = frame[y0:y1,x0:x1]
-            self.drawText(darked, x0,y1+20, "A")
+            self.drawText(darked, x0, y1+30, "SAITAMA", COLOR_SAITAMA)
             if left_face != None:
-                cv2.rectangle(darked, (x0,y0), (x1,y1), (0, 0, 255), 5)
+                cv2.rectangle(darked, (x0,y0), (x1,y1), COLOR_SAITAMA, 5)
             x0 = self.frameWidth * 5 // 8
             x1 = self.frameWidth * 7 // 8
             darked[y0:y1,x0:x1] = frame[y0:y1,x0:x1]
-            self.drawText(darked, x0,y1+20, "B")
+            self.drawText(darked, x0,y1+30, "KOUCHI", COLOR_KOUCHI)
             if right_face != None:
-                cv2.rectangle(darked, (x0,y0), (x1,y1), (0, 0, 255), 5)
+                cv2.rectangle(darked, (x0,y0), (x1,y1), COLOR_KOUCHI, 5)
             frame = darked
             if self.detectionFlag:
                 self.gameTick += 1
@@ -100,19 +109,19 @@ class Game:
                     self.capture()
                 self.drawText(frame, self.frameWidth // 2, self.frameHeight * 7 // 8, str(len(self.capturedA)))
                 if len(self.capturedA) > 10:
-                    self.drawText(frame, self.frameWidth // 2, self.frameHeight * 7 // 8 + 20, "press z")
+                    self.drawText(frame, self.frameWidth // 2 - 150, self.frameHeight * 7 // 8 + 40, "press z to start")
             else:
-                self.drawText(frame, self.frameWidth // 2, self.frameHeight * 7 // 8, "press z")
+                self.drawText(frame, self.frameWidth // 2 - 150, self.frameHeight * 7 // 8, "press z to capture")
         elif self.state == "pendingStart":
             frame = ip.darker(frame, 0.5)
-            self.drawText(frame, 500, 300, self.countDown)
+            self.drawText(frame, self.frameWidth // 2 - 180, self.frameHeight // 2 + 200, self.countDown, COLOR_YELLOW, 40)
         elif self.state == "inGame":
             self.gameTick += 1
             if self.gameTick > 400:
                self.finishGame()
             skin_mask = ip.get_skin_mask(frame)
             cv2.imshow("skin", skin_mask)
-            faces, hands = self.faceDetector.get_faces_and_hands(frame, debug=True)
+            faces, hands = self.faceDetector.get_faces_and_hands(frame, debug=self.debug)
             frame = self.updatePlayer(frame, faces, hands)
             if self.gameTick % 5 == 0:
                 # ランダムでボールを発射する
@@ -120,13 +129,12 @@ class Game:
             self.updateAndDrawBalls(frame)
             self.drawText(frame, self.frameWidth - 200, 50, "Time:" + str((400 - self.gameTick)))
         elif self.state == "finished":
-            frame = finishedBackground
-            self.drawText(frame, 400, 500, "press Z to restart")
-            self.drawText(frame, 400, 300, "GAME OVER")
+            frame = self.finishedFrame
         else:
             print("unknown state::",self.state)
         ############## この間に画面を更新処理を書く end   ###################
-        self.drawText(frame, 20, 20 + 50, self.state)
+        if self.debug:
+            self.drawText(frame, 20, 20 + 50, self.state)
         cv2.imshow("camera", frame)
 
     def capture(self):
@@ -135,10 +143,9 @@ class Game:
         if self.detectionBufferLeft is None or self.detectionBufferRight is None:
             print("写ってないよ")
             return
-        #print(self.detectionBufferLeft)
-        #print(self.detectionBufferRight)
-        #cv2.imshow("capturedA:" + str(len(self.capturedA)), self.detectionBufferLeft)
-        #cv2.imshow("capturedB:" + str(len(self.capturedB)), self.detectionBufferRight)
+        if self.debug:
+            cv2.imshow("capturedA:" + str(len(self.capturedA)), self.detectionBufferLeft)
+            cv2.imshow("capturedB:" + str(len(self.capturedB)), self.detectionBufferRight)
         self.capturedA.append(self.detectionBufferLeft)
         self.capturedB.append(self.detectionBufferRight)
 
@@ -151,26 +158,33 @@ class Game:
             updated = self.playerA.setHandPosition(hands[0].centerX, hands[0].centerY)
             if updated:
                 self.playerA.updateHandArea(hands[0])
+                roi = hands[0].get_img(frame)
+                hand_mask = ip.get_skin_mask(roi)
+                roi[hand_mask == 255] = COLOR_SAITAMA
         else:
             self.playerA.handClenched = False
         if hands[1] != None:
             updated = self.playerB.setHandPosition(hands[1].centerX, hands[1].centerY)
             if updated:
                 self.playerB.updateHandArea(hands[1])
+                roi = hands[1].get_img(frame)
+                hand_mask = ip.get_skin_mask(roi)
+                roi[hand_mask == 255] = COLOR_KOUCHI
         else:
             self.playerB.handClenched = False            
+        
+        if self.debug:
+            if self.playerA.faceX != None:
+                frame = cv2.circle(frame,(self.playerA.faceX,self.playerA.faceY), 20, (0,0,200), 3)
+            if self.playerB.faceX != None:
+                frame = cv2.circle(frame,(self.playerB.faceX,self.playerB.faceY), 20, (0,200,0), 3)
+            if self.playerA.handX != None:
+                frame = cv2.circle(frame,(self.playerA.handX,self.playerA.handY), 20, (0,200,200), 3)
+            if self.playerB.handX != None:
+                frame = cv2.circle(frame,(self.playerB.handX,self.playerB.handY), 20, (200,200,0), 3)
 
-        if self.playerA.faceX != None:
-            frame = cv2.circle(frame,(self.playerA.faceX,self.playerA.faceY), 20, (0,0,200), 3)
-        if self.playerB.faceX != None:
-            frame = cv2.circle(frame,(self.playerB.faceX,self.playerB.faceY), 20, (0,200,0), 3)
-        if self.playerA.handX != None:
-            frame = cv2.circle(frame,(self.playerA.handX,self.playerA.handY), 20, (0,200,200), 3)
-        if self.playerB.handX != None:
-            frame = cv2.circle(frame,(self.playerB.handX,self.playerB.handY), 20, (200,200,0), 3)
-
-        self.drawText(frame, 5, 100, "A:" + str(self.playerA.score) + " close " + str(self.playerA.handClenched))
-        self.drawText(frame, 5, 120, "B:" + str(self.playerB.score) + " close " + str(self.playerB.handClenched))
+        self.drawText(frame, 5, 100, "SAITAMA:" + str(self.playerA.score) + ( " close " + str(self.playerA.handClenched) if self.debug else "" ))
+        self.drawText(frame, 5, 120, "KOUCHI:" + str(self.playerB.score) + (" close " + str(self.playerB.handClenched) if self.debug else "" ))
 
         return frame
 
@@ -245,10 +259,10 @@ class Game:
             self.balls.append(ball)
 
     # 画面にテキストを表示する
-    def drawText(self, frame, x, y, text):
+    def drawText(self, frame, x, y, text, color=(0,255,255), size=2):
         cv2.putText(
             frame,text,(x, y),
-            cv2.FONT_HERSHEY_PLAIN,2,(0, 255, 255),2,
+            cv2.FONT_HERSHEY_PLAIN,size,color,3,
         )
 
     # 状態を次に進める
@@ -279,6 +293,8 @@ class Game:
         print("state updated: ", self.state)
 
     def skipToGame(self):
+        if not self.debug:
+            return
         self.faceDetector = get_static_detector(masked=True)
         self.startGame()
 
@@ -306,3 +322,17 @@ class Game:
     def finishGame(self):
         self.state = "finished"
         print("state updated: ", self.state)
+        self.finishedFrame = finishedBackground.copy()
+        self.drawText(self.finishedFrame, 20, self.frameHeight//3, "GAME OVER", COLOR_TEXT_ORANGE, 3)
+        winner = "Even"
+        if self.playerA.score > self.playerB.score:
+            winner = "SAITAMA wins!"
+        elif self.playerB.score > self.playerA.score:
+            winner = "KOUCHI wins!"
+        self.drawText(self.finishedFrame, 20, self.frameHeight//3 + 100, winner, COLOR_TEXT_ORANGE, 5)
+        self.drawText(self.finishedFrame, 20, self.frameHeight//3 * 2, "Press z to restart", COLOR_TEXT_ORANGE, 2)
+        self.drawText(self.finishedFrame, 20, self.frameHeight//3 * 2 + 50, "q to quit", COLOR_TEXT_ORANGE, 2)
+
+    def toggleDebugMode(self):
+        self.debug = not self.debug
+        print("debugMode: ", self.debug)
