@@ -10,7 +10,7 @@ from detect_hand import detect_hand
 
 WINDOW_WIDTH = 1280
 WINDOW_HEIGHT = 720
-GAME_NAME = "Something nice title"
+GAME_NAME = "Hand Catching Mascots"
 
 menuBackground = np.full((WINDOW_HEIGHT, WINDOW_WIDTH, 3), [230,150,220], dtype=np.uint8)
 finishedBackground = np.full((WINDOW_HEIGHT, WINDOW_WIDTH, 3), [120,130,200], dtype=np.uint8)
@@ -108,8 +108,8 @@ class Game:
             self.drawText(frame, 500, 300, self.countDown)
         elif self.state == "inGame":
             self.gameTick += 1
-            #if self.gameTick > 600:
-            #    self.finishGame()
+            if self.gameTick > 400:
+               self.finishGame()
             skin_mask = ip.get_skin_mask(frame)
             cv2.imshow("skin", skin_mask)
             faces, hands = self.faceDetector.get_faces_and_hands(frame, debug=True)
@@ -118,7 +118,7 @@ class Game:
                 # ランダムでボールを発射する
                 self.addBall()
             self.updateAndDrawBalls(frame)
-            self.drawText(frame, self.frameWidth - 200, 50, "Time:" + str((600 - self.gameTick)) + "s")
+            self.drawText(frame, self.frameWidth - 200, 50, "Time:" + str((400 - self.gameTick)))
         elif self.state == "finished":
             frame = finishedBackground
             self.drawText(frame, 400, 500, "press Z to restart")
@@ -137,8 +137,8 @@ class Game:
             return
         #print(self.detectionBufferLeft)
         #print(self.detectionBufferRight)
-        cv2.imshow("capturedA:" + str(len(self.capturedA)), self.detectionBufferLeft)
-        cv2.imshow("capturedB:" + str(len(self.capturedB)), self.detectionBufferRight)
+        #cv2.imshow("capturedA:" + str(len(self.capturedA)), self.detectionBufferLeft)
+        #cv2.imshow("capturedB:" + str(len(self.capturedB)), self.detectionBufferRight)
         self.capturedA.append(self.detectionBufferLeft)
         self.capturedB.append(self.detectionBufferRight)
 

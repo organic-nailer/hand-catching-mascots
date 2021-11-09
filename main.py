@@ -3,9 +3,7 @@ import cv2
 
 # メイン関数
 def main():
-    print("Hello, world!")
     game = Game()
-    game.state = "detection"
     while True:
         game.update()
         # 終了オプション
@@ -14,10 +12,8 @@ def main():
             break
         if k == ord("z"): # [z]を押したらゲーム開始
             game.consumeState()
-        if k == ord("f"):
+        if k == ord("f"): # 強制ゲーム終了
             game.finishGame()
-        if k == ord("a"):
-            game.capture()
         # ある方向にボールを自動で動かす
         if k== ord("c"):
             game.addBall()
