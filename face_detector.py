@@ -5,6 +5,7 @@ from detected_rect import DetectedRect
 import image_processing as ip
 from sklearn.neighbors import NearestNeighbors
 from util import calc_distance
+import time
 
 HAND_PATH = "./data_face/hand"
 
@@ -64,7 +65,9 @@ class FaceDetector:
         return label, distances[0][0]
 
     def get_faces_and_hands(self, frame, debug: bool = False) -> Tuple[List[DetectedRect], List[DetectedRect]]:
+        #time_first = time.perf_counter_ns() // 1000000
         rects = ip.get_skin_areas(frame)
+        #print("get areas", time.perf_counter_ns() // 1000000 - time_first, "ms")
         if len(rects) == 0:
             return [None, None], [None, None]
         for rect in rects:
@@ -81,9 +84,11 @@ class FaceDetector:
         # return [None, None], [None, None]
         # 距離の近い順にソート
         rects = sorted(rects, key=lambda rect: rect.distance)
+        #print("get rects", time.perf_counter_ns() // 1000000 - time_first, "ms")
         # 距離の近い中で最初のAとBを抽出
         nearestA = next(filter(lambda x: x.name == "A" and x.distance < 4, rects), None)
         nearestB = next(filter(lambda x: x.name == "B" and x.distance < 4, rects), None)
+        #print("get faces", time.perf_counter_ns() // 1000000 - time_first, "ms")
         # handと認識されているかA/Bと認識されながら距離が遠いものを抽出
         hands = list(filter(lambda x: (x.name == "hand" and x.distance < 5) or (x.name != "hand" and x.distance > 4), rects))
         handA = None
@@ -111,6 +116,7 @@ class FaceDetector:
             if debug:
                 cv2.rectangle(frame, (nearestB.x0, nearestB.y0), (nearestB.x1, nearestB.y1), (255, 0, 0), 3)
                 cv2.putText(frame, "Label:" + str(nearestB.name) + " d=" + str(nearestB.distance), (nearestB.x0+5,nearestB.y0+5), cv2.FONT_HERSHEY_PLAIN, 1, (0,255,255), 2,)
+        #print("get hands", time.perf_counter_ns() // 1000000 - time_first, "ms")
         if debug and handA != None:
             cv2.rectangle(frame, (handA.x0, handA.y0), (handA.x1, handA.y1), (0, 0, 128), 5)
             cv2.putText(frame, "HandA", (handA.x0+5,handA.y0+5), cv2.FONT_HERSHEY_PLAIN, 1, (0,255,255), 2,)

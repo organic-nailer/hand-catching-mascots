@@ -7,7 +7,7 @@ def main():
     while True:
         game.update()
         # 終了オプション
-        k = cv2.waitKey(10) # 30msキー入力を待つ
+        k = cv2.waitKey(10) # 10msキー入力を待つ
         if k == ord("q"):
             break
         if k == ord("z"): # [z]を押したらゲーム開始

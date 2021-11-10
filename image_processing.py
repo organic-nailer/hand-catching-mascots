@@ -4,6 +4,7 @@ import numpy as np
 from skimage.feature import hog
 
 from detected_rect import DetectedRect
+import time
 
 # inputに入るBGR画像をvalue倍だけ暗くする
 def darker(input, value):
@@ -33,17 +34,18 @@ def get_skin_mask(frame):
     # HSVからマスクを作成
     hsv_mask = cv2.inRange(hsv, hsvLower, hsvUpper)
     hsv_mask = cv2.erode(hsv_mask, kernel)
-    #hsv_mask = cv2.erode(hsv_mask, kernel)
     hsv_mask = cv2.dilate(hsv_mask, kernel)
     hsv_mask = cv2.dilate(hsv_mask, kernel)
     hsv_mask = cv2.erode(hsv_mask, kernel)
-    #hsv_mask = cv2.dilate(hsv_mask, kernel)
     
     return hsv_mask
 
 def get_skin_areas(frame) -> List[DetectedRect]:
+    #time_first = time.perf_counter_ns() // 1000000
     skin_mask = get_skin_mask(frame)
+    #print("calc mask", time.perf_counter_ns() // 1000000 - time_first, "ms")
     nlabels, labels, stats, centroids = cv2.connectedComponentsWithStats(skin_mask)
+    #print("calc connect", time.perf_counter_ns() // 1000000 - time_first, "ms")
     xLimit = frame.shape[1]
     yLimit = frame.shape[0]
     if nlabels >= 2:
@@ -70,10 +72,48 @@ def get_skin_areas(frame) -> List[DetectedRect]:
             centerY = int(centroids[i,1])
             surface = int(stats[i,4])
             rects.append(DetectedRect(None,None,max(x0,0), min(x1, xLimit), max(y0,0), min(y1, yLimit), centerX, centerY,surface))
+        #print("calc rects", time.perf_counter_ns() // 1000000 - time_first, "ms")
         return rects
     return []
 
-
+# frameを1/scaleの大きさにしてから計算
+# scale=4でだいたい 20ms -> 4ms くらいまで改善した
+def get_skin_areas_fast(frame, scale=4) -> List[DetectedRect]:
+    #time_first = time.perf_counter_ns() // 1000000
+    resized = cv2.resize(frame, (0, 0), fx=1 / scale, fy=1 / scale)
+    skin_mask = get_skin_mask(resized)
+    #print("calc mask", time.perf_counter_ns() // 1000000 - time_first, "ms")
+    nlabels, labels, stats, centroids = cv2.connectedComponentsWithStats(skin_mask)
+    #print("calc connect", time.perf_counter_ns() // 1000000 - time_first, "ms")
+    xLimit = frame.shape[1]
+    yLimit = frame.shape[0]
+    if nlabels >= 2:
+        topIndices = np.argsort(-stats[:, 4])[1:]
+        rects: List[DetectedRect] = []
+        for i in topIndices:
+            # 領域の外接矩形の角座標を入手
+            width = stats[i, 2] * scale
+            height = stats[i, 3] * scale
+            if width <= 50 or height <= 50: # 小さければ無視
+                continue
+            if stats[i,4] * scale < width * height * 0.3: # 中身が詰まってないものは多分違うので排除
+                continue
+            # 検知場所の矩形を取得
+            x0 = stats[i, 0] * scale
+            y0 = stats[i, 1] * scale
+            x1 = x0 + width
+            y1 = y0 + height
+            # 顔全体を映すために枠を拡張
+            x0 -= int(width * 0.1)
+            y0 -= int(height * 0.3)
+            x1 += int(width * 0.1)
+            centerX = int(centroids[i,0] * scale)
+            centerY = int(centroids[i,1] * scale)
+            surface = int(stats[i,4] * scale)
+            rects.append(DetectedRect(None,None,max(x0,0), min(x1, xLimit), max(y0,0), min(y1, yLimit), centerX, centerY,surface))
+        #print("calc rects", time.perf_counter_ns() // 1000000 - time_first, "ms")
+        return rects
+    return []
 
 def calc_hog(img, masked = False):
     if masked:
