@@ -130,7 +130,7 @@ class Game:
                 # ランダムでボールを発射する
                 self.addBall()
             self.updateAndDrawBalls(frame)
-            self.drawText(frame, self.frameWidth - 200, 50, "Time:" + str((600 - self.gameTick)))
+            self.drawText(frame, self.frameWidth - 250, 50, "Time:" + str((600 - self.gameTick)), size=3)
         elif self.state == "finished":
             frame = self.finishedFrame
         else:
@@ -186,8 +186,8 @@ class Game:
             if self.playerB.handX != None:
                 frame = cv2.circle(frame,(self.playerB.handX,self.playerB.handY), 20, (200,200,0), 3)
 
-        self.drawText(frame, 5, 100, "SAITAMA:" + str(self.playerA.score) + ( " close " + str(self.playerA.handClenched) if self.debug else "" ))
-        self.drawText(frame, 5, 120, "KOUCHI:" + str(self.playerB.score) + (" close " + str(self.playerB.handClenched) if self.debug else "" ))
+        self.drawText(frame, 5, 100, "SAITAMA:" + str(self.playerA.score) + ( " close " + str(self.playerA.handClenched) if self.debug else "" ), COLOR_SAITAMA, 3)
+        self.drawText(frame, 5, 150, "KOUCHI:" + str(self.playerB.score) + (" close " + str(self.playerB.handClenched) if self.debug else "" ), COLOR_KOUCHI, 3)
 
         return frame
 
@@ -337,6 +337,10 @@ class Game:
         elif self.playerB.score > self.playerA.score:
             winner = "KOUCHI wins!"
         self.drawText(self.finishedFrame, 20, self.frameHeight//3 + 100, winner, COLOR_TEXT_ORANGE, 5)
+
+        scoreText = "KOUCHI:" + str(self.playerB.score) + " SAITAMA:" + str(self.playerA.score)
+        self.drawText(self.finishedFrame, 20, self.frameHeight//3 + 150, scoreText, COLOR_TEXT_ORANGE, 2)
+
         self.drawText(self.finishedFrame, 20, self.frameHeight//3 * 2, "Press z to restart", COLOR_TEXT_ORANGE, 2)
         self.drawText(self.finishedFrame, 20, self.frameHeight//3 * 2 + 50, "q to quit", COLOR_TEXT_ORANGE, 2)
 
