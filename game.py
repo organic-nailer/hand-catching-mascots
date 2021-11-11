@@ -38,7 +38,7 @@ class Game:
         self.frameHeight = -1
         self.frameWidth = -1
         self.playerA = Player("A", "Saitama")
-        self.playerB = Player("B", "Kouchi")
+        self.playerB = Player("B", "Kochi")
         self.capturedA = []
         self.capturedB = []
         self.detectionBufferLeft = None
@@ -101,7 +101,7 @@ class Game:
             x0 = self.frameWidth * 5 // 8
             x1 = self.frameWidth * 7 // 8
             darked[y0:y1,x0:x1] = frame[y0:y1,x0:x1]
-            self.drawText(darked, x0,y1+30, "KOUCHI", COLOR_KOUCHI)
+            self.drawText(darked, x0,y1+30, "KOCHI", COLOR_KOUCHI)
             if right_face != None:
                 cv2.rectangle(darked, (x0,y0), (x1,y1), COLOR_KOUCHI, 5)
             frame = darked
@@ -187,7 +187,7 @@ class Game:
                 frame = cv2.circle(frame,(self.playerB.handX,self.playerB.handY), 20, (200,200,0), 3)
 
         self.drawText(frame, 5, 100, "SAITAMA:" + str(self.playerA.score) + ( " close " + str(self.playerA.handClenched) if self.debug else "" ), COLOR_SAITAMA, 3)
-        self.drawText(frame, 5, 150, "KOUCHI:" + str(self.playerB.score) + (" close " + str(self.playerB.handClenched) if self.debug else "" ), COLOR_KOUCHI, 3)
+        self.drawText(frame, 5, 150, "KOCHI:" + str(self.playerB.score) + (" close " + str(self.playerB.handClenched) if self.debug else "" ), COLOR_KOUCHI, 3)
 
         return frame
 
@@ -335,10 +335,10 @@ class Game:
         if self.playerA.score > self.playerB.score:
             winner = "SAITAMA wins!"
         elif self.playerB.score > self.playerA.score:
-            winner = "KOUCHI wins!"
+            winner = "KOCHI wins!"
         self.drawText(self.finishedFrame, 20, self.frameHeight//3 + 100, winner, COLOR_TEXT_ORANGE, 5)
 
-        scoreText = "KOUCHI:" + str(self.playerB.score) + " SAITAMA:" + str(self.playerA.score)
+        scoreText = "KOCHI:" + str(self.playerB.score) + " SAITAMA:" + str(self.playerA.score)
         self.drawText(self.finishedFrame, 20, self.frameHeight//3 + 150, scoreText, COLOR_TEXT_ORANGE, 2)
 
         self.drawText(self.finishedFrame, 20, self.frameHeight//3 * 2, "Press z to restart", COLOR_TEXT_ORANGE, 2)
